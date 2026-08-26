@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer utilities {
+  .high-contrast {
+    @apply contrast-125;
+  }
+
+  .large-text {
+    font-size: 1.25rem;
+  }
+
+  .large-text h1 {
+    @apply text-5xl;
+  }
+
+  .large-text h2 {
+    @apply text-4xl;
+  }
+
+  .large-text p, .large-text button, .large-text a {
+    @apply text-xl;
+  }
+}
