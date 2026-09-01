@@ -243,7 +243,7 @@ function Insights() {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Language Preference</h2>
         <div className="grid sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-orange-600 mb-1">Hindi</p>
+            <p className="text-2xl font-bold text-orange-600 mb-1">অসমীয়া</p>
             <p className="text-sm text-gray-600">Primary language</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
@@ -251,7 +251,7 @@ function Insights() {
             <p className="text-sm text-gray-600">Secondary language</p>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-pink-600 mb-1">Code-Mixed</p>
+            <p className="text-2xl font-bold text-pink-600 mb-1">Assamese–English</p>
             <p className="text-sm text-gray-600">Natural interaction</p>
           </div>
         </div>

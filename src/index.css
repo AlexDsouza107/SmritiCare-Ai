@@ -1,29 +1,24 @@
 @import "tailwindcss";
 
-@layer base {
-  body {
-    @apply bg-gray-50 text-gray-900;
-  }
+body {
+  background-color: #f9fafb;
+  color: #111827;
 }
 
-@layer utilities {
-  .high-contrast {
-    @apply contrast-125;
-  }
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
 
-  .large-text {
-    font-size: 1.25rem;
-  }
-
-  .large-text h1 {
-    @apply text-5xl;
-  }
-
-  .large-text h2 {
-    @apply text-4xl;
-  }
-
-  .large-text p, .large-text button, .large-text a {
-    @apply text-xl;
-  }
+.dashboard-texture {
+  isolation: isolate;
+  position: relative;
+  background-color: #f3ead9;
+  background-image:
+    radial-gradient(circle at 6% 12%, rgba(128, 93, 53, 0.14) 0 0.7px, transparent 1.2px),
+    radial-gradient(circle at 92% 20%, rgba(112, 81, 43, 0.10) 0 0.8px, transparent 1.3px),
+    repeating-linear-gradient(92deg, rgba(128, 93, 53, 0.025) 0 1px, transparent 1px 5px),
+    linear-gradient(115deg, rgba(215, 202, 174, 0.42), transparent 34%);
 }

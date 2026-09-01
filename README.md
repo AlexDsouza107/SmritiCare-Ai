@@ -1,8 +1,8 @@
-# SmritiCare - AI-Assisted Dementia Care Platform
+# SMARA - AI-Assisted Dementia Care Platform
 
 **Smart India Hackathon 2024 Solution**
 
-SmritiCare is a personalized cognitive engagement platform designed for dementia care. It transforms familiar memories, people, places, music, and experiences into meaningful interactive activities.
+SMARA is a personalized cognitive engagement platform designed for dementia care. It transforms familiar memories, people, places, music, and experiences into meaningful interactive activities.
 
 ## 🎯 Key Features
 
@@ -50,7 +50,7 @@ All activities are personalized using the patient's own memories:
 
 ```bash
 # Navigate to the project directory
-cd smriticare
+cd SMARA
 
 # Install dependencies (already done)
 npm install
@@ -83,7 +83,7 @@ You can add your own memories, timeline events, and notes. Use **Settings → Re
 ## 🗂️ Project Structure
 
 ```
-smriticare/
+SMARA/
 ├── src/
 │   ├── components/
 │   │   └── Layout.jsx          # Main layout with navigation
@@ -189,7 +189,7 @@ Edit `src/utils/storage.js` to modify:
 
 ## 📄 License
 
-This project was created for Smart India Hackathon 2024.
+This project was created for Smart India Hackathon 2026.
 
 ## 👥 Contact
 
@@ -197,4 +197,4 @@ For questions about this SIH solution, please reach out to the development team.
 
 ---
 
-**Built with ❤️ for Smart India Hackathon 2024**
+**Built with ❤️ for Smart India Hackathon 2026 BY Team RuntimeTerror**

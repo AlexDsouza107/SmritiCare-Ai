@@ -1,4 +1,8 @@
-// LocalStorage helper functions for SmritiCare demo
+// API-backed storage with localStorage caching for SmritiCare
+// Refactored to use backend Express + SQLite API
+
+const API_BASE = 'http://localhost:3000/api';
+const PATIENT_ID = 1; // Demo patient ID
 
 const STORAGE_KEYS = {
   PATIENT: 'smriticare_patient',
@@ -10,225 +14,286 @@ const STORAGE_KEYS = {
   STATS: 'smriticare_stats',
 };
 
-// Demo patient data
-const DEMO_PATIENT = {
-  id: 1,
-  name: 'Meera Sharma',
-  age: 72,
-  preferredLanguage: 'Hindi',
-  secondaryLanguage: 'English',
-  codeMixing: 'Hindi + English',
-  favoriteMusic: 'Old Hindi film songs',
-  favoriteFood: 'Dal Makhani, Gulab Jamun',
-  favoritePlaces: ['Mumbai', 'Pune', 'Nashik'],
-  hobbies: ['Gardening', 'Cooking', 'Listening to music'],
-  importantPeople: [
-    { name: 'Priya', relation: 'Daughter' },
-    { name: 'Rahul', relation: 'Son' },
-    { name: 'Anaya', relation: 'Granddaughter' },
-  ],
-};
+// Helper: Fetch with error handling
+async function apiFetch(url, options = {}) {
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
 
-// Demo memories
-const DEMO_MEMORIES = [
-  {
-    id: 1,
-    title: 'Family Trip to Goa',
-    category: 'Events',
-    description: 'Beautiful family vacation at the beach in 2015',
-    imageUrl: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
-    people: ['Priya', 'Rahul', 'Anaya'],
-    date: '2015-12-20',
-  },
-  {
-    id: 2,
-    title: "Priya's Graduation",
-    category: 'Family',
-    description: 'Proud moment when Priya graduated from university',
-    imageUrl: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400',
-    people: ['Priya'],
-    date: '2005-05-15',
-  },
-  {
-    id: 3,
-    title: 'Old Mumbai Home',
-    category: 'Places',
-    description: 'The house where we raised our family in Bandra',
-    imageUrl: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400',
-    people: [],
-    date: '1985-01-01',
-  },
-  {
-    id: 4,
-    title: "Anaya's Birthday",
-    category: 'Events',
-    description: "Celebrating granddaughter's 10th birthday party",
-    imageUrl: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-    people: ['Anaya', 'Priya', 'Rahul'],
-    date: '2020-08-12',
-  },
-  {
-    id: 5,
-    title: 'Favorite Garden',
-    category: 'Places',
-    description: 'The beautiful garden where Meera loves to spend time',
-    imageUrl: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=400',
-    people: [],
-    date: '2010-03-01',
-  },
-  {
-    id: 6,
-    title: 'Wedding Anniversary',
-    category: 'Events',
-    description: '40th wedding anniversary celebration with family',
-    imageUrl: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=400',
-    people: ['Priya', 'Rahul'],
-    date: '2012-02-14',
-  },
-  {
-    id: 7,
-    title: 'Rahul with Family',
-    category: 'Family',
-    description: 'Son Rahul with his family at Diwali celebration',
-    imageUrl: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400',
-    people: ['Rahul'],
-    date: '2018-11-07',
-  },
-  {
-    id: 8,
-    title: 'Priya at Home',
-    category: 'People',
-    description: 'Daughter Priya visiting during the weekend',
-    imageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-    people: ['Priya'],
-    date: '2023-06-10',
-  },
-];
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
 
-// Demo timeline events
-const DEMO_TIMELINE = [
-  { id: 1, year: 1954, title: 'Born in Pune', description: 'Meera was born in Pune, Maharashtra' },
-  { id: 2, year: 1972, title: 'Married', description: 'Wedding ceremony in Mumbai' },
-  { id: 3, year: 1978, title: 'Moved to Mumbai', description: 'Started new life in Bandra' },
-  { id: 4, year: 1982, title: 'Priya was born', description: 'First child, daughter Priya' },
-  { id: 5, year: 1985, title: 'Rahul was born', description: 'Second child, son Rahul' },
-  { id: 6, year: 1990, title: 'Started gardening', description: 'Developed passion for plants and flowers' },
-  { id: 7, year: 2005, title: "Priya's graduation", description: 'Priya graduated from Mumbai University' },
-  { id: 8, year: 2010, title: 'Anaya was born', description: 'First grandchild, Priya\'s daughter' },
-  { id: 9, year: 2015, title: 'Family trip to Goa', description: 'Memorable beach vacation with entire family' },
-  { id: 10, year: 2024, title: "Anaya's birthday", description: 'Celebrated granddaughter turning 14' },
-];
+    return await response.json();
+  } catch (error) {
+    console.error('API fetch error:', error);
+    throw error;
+  }
+}
 
-// Demo stats
-const DEMO_STATS = {
-  activitiesCompleted: 3,
-  memoryInteractions: 12,
-  engagementTime: 24,
-  familiarityScore: 82,
-  recentActivities: [
-    { id: 1, text: 'Recognized daughter — Priya', time: '10 minutes ago' },
-    { id: 2, text: 'Identified family home', time: '25 minutes ago' },
-    { id: 3, text: 'Completed favorite song activity', time: '1 hour ago' },
-  ],
-};
+// Initialize demo data (now pulls from backend)
+export const initializeDemoData = async () => {
+  try {
+    // Fetch patient data from backend
+    const patient = await apiFetch(`${API_BASE}/patients/${PATIENT_ID}`);
+    localStorage.setItem(STORAGE_KEYS.PATIENT, JSON.stringify(patient));
 
-// Demo settings
-const DEMO_SETTINGS = {
-  language: 'Hindi',
-  fontSize: 'normal',
-  highContrast: false,
-  notifications: true,
-  sound: true,
-  reduceAnimation: false,
-};
+    // Fetch memories
+    const memories = await apiFetch(`${API_BASE}/memories?patientId=${PATIENT_ID}`);
+    localStorage.setItem(STORAGE_KEYS.MEMORIES, JSON.stringify(memories));
 
-// Initialize demo data
-export const initializeDemoData = () => {
-  if (!localStorage.getItem(STORAGE_KEYS.PATIENT)) {
-    localStorage.setItem(STORAGE_KEYS.PATIENT, JSON.stringify(DEMO_PATIENT));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.MEMORIES)) {
-    localStorage.setItem(STORAGE_KEYS.MEMORIES, JSON.stringify(DEMO_MEMORIES));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.TIMELINE)) {
-    localStorage.setItem(STORAGE_KEYS.TIMELINE, JSON.stringify(DEMO_TIMELINE));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.STATS)) {
-    localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(DEMO_STATS));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEMO_SETTINGS));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.NOTES)) {
-    localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.ACTIVITIES)) {
-    localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify([]));
+    // Fetch timeline
+    const timeline = await apiFetch(`${API_BASE}/timeline?patientId=${PATIENT_ID}`);
+    localStorage.setItem(STORAGE_KEYS.TIMELINE, JSON.stringify(timeline));
+
+    // Fetch stats
+    const stats = await apiFetch(`${API_BASE}/stats/${PATIENT_ID}`);
+    localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(stats));
+
+    // Fetch settings
+    const settings = await apiFetch(`${API_BASE}/settings/${PATIENT_ID}`);
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+
+    // Initialize empty arrays for notes and activities if not present
+    if (!localStorage.getItem(STORAGE_KEYS.NOTES)) {
+      localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.ACTIVITIES)) {
+      localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify([]));
+    }
+  } catch (error) {
+    console.error('Failed to initialize data from backend:', error);
+    // Fallback to localStorage if backend is unavailable
   }
 };
 
-// Get functions
+// Get patient (from cache, sync from API in background)
 export const getPatient = () => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.PATIENT) || 'null');
+  const cached = JSON.parse(localStorage.getItem(STORAGE_KEYS.PATIENT) || 'null');
+
+  // Background sync
+  apiFetch(`${API_BASE}/patients/${PATIENT_ID}`)
+    .then(patient => {
+      localStorage.setItem(STORAGE_KEYS.PATIENT, JSON.stringify(patient));
+    })
+    .catch(err => console.error('Background patient sync failed:', err));
+
+  return cached;
 };
 
+// Get memories (from cache, sync from API in background)
 export const getMemories = () => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMORIES) || '[]');
+  const cached = JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMORIES) || '[]');
+
+  // Background sync
+  apiFetch(`${API_BASE}/memories?patientId=${PATIENT_ID}`)
+    .then(memories => {
+      localStorage.setItem(STORAGE_KEYS.MEMORIES, JSON.stringify(memories));
+    })
+    .catch(err => console.error('Background memories sync failed:', err));
+
+  return cached;
 };
 
+// Get timeline (from cache, sync from API in background)
 export const getTimeline = () => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.TIMELINE) || '[]');
+  const cached = JSON.parse(localStorage.getItem(STORAGE_KEYS.TIMELINE) || '[]');
+
+  // Background sync
+  apiFetch(`${API_BASE}/timeline?patientId=${PATIENT_ID}`)
+    .then(timeline => {
+      localStorage.setItem(STORAGE_KEYS.TIMELINE, JSON.stringify(timeline));
+    })
+    .catch(err => console.error('Background timeline sync failed:', err));
+
+  return cached;
 };
 
+// Get stats (from cache, sync from API in background)
 export const getStats = () => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.STATS) || 'null');
+  const cached = JSON.parse(localStorage.getItem(STORAGE_KEYS.STATS) || 'null');
+
+  // Background sync
+  apiFetch(`${API_BASE}/stats/${PATIENT_ID}`)
+    .then(stats => {
+      localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(stats));
+    })
+    .catch(err => console.error('Background stats sync failed:', err));
+
+  return cached;
 };
 
+// Get settings (from cache, sync from API in background)
 export const getSettings = () => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || 'null');
+  const cached = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || 'null');
+
+  // Background sync
+  apiFetch(`${API_BASE}/settings/${PATIENT_ID}`)
+    .then(settings => {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    })
+    .catch(err => console.error('Background settings sync failed:', err));
+
+  return cached;
 };
 
+// Get notes (local only for now)
 export const getNotes = () => {
   return JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTES) || '[]');
 };
 
+// Get activities (from cache, sync from API in background)
 export const getActivities = () => {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVITIES) || '[]');
+  const cached = JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVITIES) || '[]');
+
+  // Background sync
+  apiFetch(`${API_BASE}/activities?patientId=${PATIENT_ID}`)
+    .then(activities => {
+      localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
+    })
+    .catch(err => console.error('Background activities sync failed:', err));
+
+  return cached;
 };
 
-// Set functions
-export const setPatient = (patient) => {
+// Set patient (update cache and sync to API)
+export const setPatient = async (patient) => {
   localStorage.setItem(STORAGE_KEYS.PATIENT, JSON.stringify(patient));
+
+  try {
+    await apiFetch(`${API_BASE}/patients/${PATIENT_ID}`, {
+      method: 'PUT',
+      body: JSON.stringify(patient),
+    });
+  } catch (error) {
+    console.error('Failed to sync patient to backend:', error);
+  }
 };
 
-export const addMemory = (memory) => {
-  const memories = getMemories();
-  const newMemory = { ...memory, id: Date.now() };
-  memories.push(newMemory);
-  localStorage.setItem(STORAGE_KEYS.MEMORIES, JSON.stringify(memories));
-  return newMemory;
+// Add memory (with photo upload support)
+export const addMemory = async (memory, photoFile = null) => {
+  try {
+    let response;
+
+    if (photoFile) {
+      // Use FormData for file upload
+      const formData = new FormData();
+      formData.append('patientId', PATIENT_ID);
+      formData.append('title', memory.title);
+      formData.append('category', memory.category || 'Family');
+      formData.append('description', memory.description || '');
+      formData.append('date', memory.date || '');
+      formData.append('people', JSON.stringify(memory.people || []));
+      formData.append('photo', photoFile);
+
+      const res = await fetch(`${API_BASE}/memories`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Failed to upload memory');
+      response = await res.json();
+    } else {
+      // JSON without file
+      response = await apiFetch(`${API_BASE}/memories`, {
+        method: 'POST',
+        body: JSON.stringify({
+          patientId: PATIENT_ID,
+          ...memory,
+        }),
+      });
+    }
+
+    const newMemory = response.memory;
+
+    // Update cache
+    const memories = getMemories();
+    memories.push(newMemory);
+    localStorage.setItem(STORAGE_KEYS.MEMORIES, JSON.stringify(memories));
+
+    return newMemory;
+  } catch (error) {
+    console.error('Failed to add memory:', error);
+    // Fallback to local-only
+    const memories = getMemories();
+    const newMemory = { ...memory, id: Date.now() };
+    memories.push(newMemory);
+    localStorage.setItem(STORAGE_KEYS.MEMORIES, JSON.stringify(memories));
+    return newMemory;
+  }
 };
 
-export const addTimelineEvent = (event) => {
-  const timeline = getTimeline();
-  const newEvent = { ...event, id: Date.now() };
-  timeline.push(newEvent);
-  timeline.sort((a, b) => a.year - b.year);
-  localStorage.setItem(STORAGE_KEYS.TIMELINE, JSON.stringify(timeline));
-  return newEvent;
+// Add timeline event
+export const addTimelineEvent = async (event) => {
+  try {
+    const response = await apiFetch(`${API_BASE}/timeline`, {
+      method: 'POST',
+      body: JSON.stringify({
+        patientId: PATIENT_ID,
+        ...event,
+      }),
+    });
+
+    const newEvent = response.event;
+
+    // Update cache
+    const timeline = getTimeline();
+    timeline.push(newEvent);
+    timeline.sort((a, b) => a.year - b.year);
+    localStorage.setItem(STORAGE_KEYS.TIMELINE, JSON.stringify(timeline));
+
+    return newEvent;
+  } catch (error) {
+    console.error('Failed to add timeline event:', error);
+    // Fallback
+    const timeline = getTimeline();
+    const newEvent = { ...event, id: Date.now() };
+    timeline.push(newEvent);
+    timeline.sort((a, b) => a.year - b.year);
+    localStorage.setItem(STORAGE_KEYS.TIMELINE, JSON.stringify(timeline));
+    return newEvent;
+  }
 };
 
-export const updateStats = (updates) => {
+// Update stats
+export const updateStats = async (updates) => {
   const stats = getStats();
   const updatedStats = { ...stats, ...updates };
+
   localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(updatedStats));
+
+  try {
+    await apiFetch(`${API_BASE}/stats/${PATIENT_ID}`, {
+      method: 'PUT',
+      body: JSON.stringify(updatedStats),
+    });
+  } catch (error) {
+    console.error('Failed to sync stats to backend:', error);
+  }
+
   return updatedStats;
 };
 
-export const setSettings = (settings) => {
+// Set settings
+export const setSettings = async (settings) => {
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+
+  try {
+    await apiFetch(`${API_BASE}/settings/${PATIENT_ID}`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+  } catch (error) {
+    console.error('Failed to sync settings to backend:', error);
+  }
 };
 
+// Add note (local only for now)
 export const addNote = (note) => {
   const notes = getNotes();
   const newNote = { id: Date.now(), text: note, timestamp: new Date().toISOString() };
@@ -237,15 +302,132 @@ export const addNote = (note) => {
   return newNote;
 };
 
-export const addActivity = (activity) => {
-  const activities = getActivities();
-  const newActivity = { ...activity, id: Date.now(), timestamp: new Date().toISOString() };
-  activities.push(newActivity);
-  localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
-  return newActivity;
+// Add activity (sync to backend)
+export const addActivity = async (activity) => {
+  try {
+    const response = await apiFetch(`${API_BASE}/activities`, {
+      method: 'POST',
+      body: JSON.stringify({
+        patientId: PATIENT_ID,
+        gameId: activity.gameId,
+        score: activity.score || 0,
+        totalRounds: activity.totalRounds || 0,
+        correctAnswers: activity.correctAnswers || 0,
+        durationSeconds: activity.durationSeconds || 0,
+        completed: activity.completed !== false,
+        sessionData: activity.sessionData || null,
+      }),
+    });
+
+    const newActivity = response.session;
+
+    // Update cache
+    const activities = getActivities();
+    activities.push(newActivity);
+    localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
+
+    return newActivity;
+  } catch (error) {
+    console.error('Failed to record activity:', error);
+    // Fallback
+    const activities = getActivities();
+    const newActivity = { ...activity, id: Date.now(), timestamp: new Date().toISOString() };
+    activities.push(newActivity);
+    localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
+    return newActivity;
+  }
 };
 
+// Reset demo data
 export const resetDemoData = () => {
   Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
   initializeDemoData();
+};
+
+// New helper: Add family member with photo and voice
+export const addFamilyMember = async (member, photoFile = null, voiceFile = null) => {
+  try {
+    const formData = new FormData();
+    formData.append('name', member.name);
+    formData.append('relation', member.relation);
+    formData.append('description', member.description || '');
+
+    if (photoFile) {
+      formData.append('photo', photoFile);
+    }
+
+    if (voiceFile) {
+      formData.append('voice', voiceFile);
+    }
+
+    const response = await fetch(`${API_BASE}/patients/${PATIENT_ID}/family`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error('Failed to add family member');
+
+    const result = await response.json();
+
+    // Refresh patient data in cache
+    const patient = await apiFetch(`${API_BASE}/patients/${PATIENT_ID}`);
+    localStorage.setItem(STORAGE_KEYS.PATIENT, JSON.stringify(patient));
+
+    return result.familyMember;
+  } catch (error) {
+    console.error('Failed to add family member:', error);
+    throw error;
+  }
+};
+
+// New helper: Update family member
+export const updateFamilyMember = async (memberId, member, photoFile = null, voiceFile = null) => {
+  try {
+    const formData = new FormData();
+    formData.append('name', member.name);
+    formData.append('relation', member.relation);
+    formData.append('description', member.description || '');
+
+    if (photoFile) {
+      formData.append('photo', photoFile);
+    }
+
+    if (voiceFile) {
+      formData.append('voice', voiceFile);
+    }
+
+    const response = await fetch(`${API_BASE}/patients/${PATIENT_ID}/family/${memberId}`, {
+      method: 'PUT',
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error('Failed to update family member');
+
+    const result = await response.json();
+
+    // Refresh patient data in cache
+    const patient = await apiFetch(`${API_BASE}/patients/${PATIENT_ID}`);
+    localStorage.setItem(STORAGE_KEYS.PATIENT, JSON.stringify(patient));
+
+    return result.familyMember;
+  } catch (error) {
+    console.error('Failed to update family member:', error);
+    throw error;
+  }
+};
+
+// New helper: Delete family member
+export const deleteFamilyMember = async (memberId) => {
+  try {
+    await apiFetch(`${API_BASE}/patients/${PATIENT_ID}/family/${memberId}`, {
+      method: 'DELETE',
+    });
+
+    // Refresh patient data in cache
+    const patient = await apiFetch(`${API_BASE}/patients/${PATIENT_ID}`);
+    localStorage.setItem(STORAGE_KEYS.PATIENT, JSON.stringify(patient));
+  } catch (error) {
+    console.error('Failed to delete family member:', error);
+    throw error;
+  }
 };

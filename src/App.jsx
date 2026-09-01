@@ -10,6 +10,7 @@ import MemoryJourney from './pages/MemoryJourney';
 import Insights from './pages/Insights';
 import Settings from './pages/Settings';
 import { initializeDemoData } from './utils/storage';
+import { LanguageProvider } from './context/LanguageContext';
 import './App.css';
 
 function App() {
@@ -20,25 +21,36 @@ function App() {
     initializeDemoData();
   }, []);
 
+  const enterDemo = async () => {
+    await initializeDemoData();
+    setIsLanding(false);
+  };
+
   if (isLanding) {
-    return <LandingPage onEnterDemo={() => setIsLanding(false)} />;
+    return (
+      <LanguageProvider>
+        <LandingPage onEnterDemo={enterDemo} />
+      </LanguageProvider>
+    );
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="profile" element={<PatientProfile />} />
-          <Route path="memory-library" element={<MemoryLibrary />} />
-          <Route path="activities" element={<Activities />} />
-          <Route path="journey" element={<MemoryJourney />} />
-          <Route path="insights" element={<Insights />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </Router>
+    <LanguageProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout onReturnHome={() => setIsLanding(true)} />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<PatientProfile />} />
+            <Route path="memory-library" element={<MemoryLibrary />} />
+            <Route path="activities" element={<Activities />} />
+            <Route path="journey" element={<MemoryJourney />} />
+            <Route path="insights" element={<Insights />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+        </Routes>
+      </Router>
+    </LanguageProvider>
   );
 }
 

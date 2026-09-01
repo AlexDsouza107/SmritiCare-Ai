@@ -1,10 +1,52 @@
-import { useState } from 'react';
-import { ArrowRight, CheckCircle2, X, Music, MapPin, Users, Shuffle, Clock } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { ArrowRight, CheckCircle2, X, Music, MapPin, Users, Shuffle, Clock, Volume2, Play, Pause } from 'lucide-react';
 import { getMemories, getPatient, updateStats, getStats, addActivity } from '../utils/storage';
+
+// 6 Pairs defined with descriptions and images
+const MEMORY_MATCH_PAIRS = [
+  {
+    id: 'diwali',
+    title: 'Diwali at Home',
+    description: 'Traditional illuminated clay diyas with festive lights',
+    image: '/diwali.png',
+  },
+  {
+    id: 'ganpati',
+    title: 'Ganpati 2025',
+    description: 'Extended family gathered in festive attire celebrating Ganpati',
+    image: '/ganpati.png',
+  },
+  {
+    id: 'first-grandchild',
+    title: 'First Grandchild',
+    description: 'Mother cradling her newborn baby',
+    image: '/first-grandchild.png',
+  },
+  {
+    id: 'first-teaching-job',
+    title: 'First Teaching Job',
+    description: 'Teacher conducting a lesson at the classroom blackboard',
+    image: '/first-teaching-job.png',
+  },
+  {
+    id: 'summer-vacation-pune',
+    title: 'Summer Vacation Pune',
+    description: 'Family outdoor photo in front of the historic Aga Khan Palace in Pune',
+    image: '/summer-vacation-pune.png',
+  },
+  {
+    id: 'wedding-day',
+    title: 'Wedding Day',
+    description: 'Vintage framed portrait of the bride and groom in traditional wedding attire',
+    image: '/wedding.png',
+  },
+];
 
 function Activities() {
   const [currentGame, setCurrentGame] = useState(null);
   const [gameState, setGameState] = useState({});
+  const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const voicePlayerRef = useRef(null);
   const memories = getMemories();
   const patient = getPatient();
 
@@ -33,6 +75,15 @@ function Activities() {
       description: 'Remember favorite melodies',
       icon: Music,
       color: 'pink',
+      difficulty: 'Easy',
+      time: '5 min',
+    },
+    {
+      id: 'voice-match',
+      title: 'Whose Voice Is It?',
+      description: 'Listen to a familiar voice and choose their photo',
+      icon: Volume2,
+      color: 'purple',
       difficulty: 'Easy',
       time: '5 min',
     },
@@ -72,6 +123,9 @@ function Activities() {
       case 'complete-song':
         initCompleteSong();
         break;
+      case 'voice-match':
+        initVoiceMatch();
+        break;
       case 'familiar-place':
         initFamiliarPlace();
         break;
@@ -91,7 +145,6 @@ function Activities() {
       const allPeople = patient.importantPeople.map(p => p.name);
       const options = [correctPerson];
 
-      // Add random wrong answers
       while (options.length < 4 && allPeople.length >= 4) {
         const randomPerson = allPeople[Math.floor(Math.random() * allPeople.length)];
         if (!options.includes(randomPerson)) {
@@ -99,7 +152,6 @@ function Activities() {
         }
       }
 
-      // Shuffle options
       options.sort(() => Math.random() - 0.5);
 
       setGameState({
@@ -115,13 +167,31 @@ function Activities() {
     }
   };
 
+  // Initialize 12 cards (6 text cards + 6 image cards)
   const initMemoryMatch = () => {
-    const gameMemories = memories.slice(0, 6);
     const cards = [];
 
-    gameMemories.forEach((memory, idx) => {
-      cards.push({ id: `img-${idx}`, type: 'image', content: memory.imageUrl, matchId: idx, flipped: false, matched: false });
-      cards.push({ id: `text-${idx}`, type: 'text', content: memory.title, matchId: idx, flipped: false, matched: false });
+    MEMORY_MATCH_PAIRS.forEach((pair) => {
+      // Text card
+      cards.push({
+        id: `text-${pair.id}`,
+        type: 'text',
+        title: pair.title,
+        description: pair.description,
+        matchId: pair.id,
+        flipped: false,
+        matched: false,
+      });
+      // Image card
+      cards.push({
+        id: `img-${pair.id}`,
+        type: 'image',
+        image: pair.image,
+        title: pair.title,
+        matchId: pair.id,
+        flipped: false,
+        matched: false,
+      });
     });
 
     cards.sort(() => Math.random() - 0.5);
@@ -165,6 +235,32 @@ function Activities() {
     });
   };
 
+  const shuffle = (items) => [...items].sort(() => Math.random() - 0.5);
+
+  const initVoiceMatch = () => {
+    const playableFamilyMembers = (patient?.familyMembers || []).filter(
+      (member) => member.photo && member.voice
+    );
+
+    if (playableFamilyMembers.length < 4) {
+      setGameState({ availableMembers: playableFamilyMembers.length, needsSetup: true });
+      return;
+    }
+
+    const selectedMembers = shuffle(playableFamilyMembers).slice(0, 4);
+    const roundMembers = shuffle(selectedMembers);
+    setGameState({
+      options: shuffle(selectedMembers),
+      roundMembers,
+      currentMember: roundMembers[0],
+      answered: false,
+      correct: null,
+      score: 0,
+      round: 1,
+      totalRounds: 4,
+    });
+  };
+
   const initFamiliarPlace = () => {
     const placeMemories = memories.filter(m => m.category === 'Places' || patient.favoritePlaces.some(p => m.title.includes(p)));
     if (placeMemories.length > 0) {
@@ -202,7 +298,6 @@ function Activities() {
       score: newScore,
     });
 
-    // Update stats
     const stats = getStats();
     updateStats({
       memoryInteractions: stats.memoryInteractions + 1,
@@ -244,17 +339,20 @@ function Activities() {
           const matchedCards = gameState.cards.map(card =>
             card.matchId === card1.matchId ? { ...card, matched: true } : card
           );
+          const updatedMatches = gameState.matches + 1;
           setGameState({
             ...gameState,
             cards: matchedCards,
             flippedCards: [],
-            matches: gameState.matches + 1,
+            matches: updatedMatches,
           });
 
-          if (gameState.matches + 1 === 6) {
-            completeGame();
+          if (updatedMatches === 6) {
+            setTimeout(() => {
+              completeGame();
+            }, 1200);
           }
-        }, 1000);
+        }, 800);
       } else {
         setTimeout(() => {
           const resetCards = gameState.cards.map(card =>
@@ -265,7 +363,7 @@ function Activities() {
             cards: resetCards,
             flippedCards: [],
           });
-        }, 1500);
+        }, 1300);
       }
     }
   };
@@ -289,6 +387,49 @@ function Activities() {
     } else {
       completeGame();
     }
+  };
+
+  const toggleVoicePlayback = () => {
+    const player = voicePlayerRef.current;
+    if (!player || !gameState.currentMember?.voice) return;
+
+    if (isVoicePlaying) {
+      player.pause();
+      setIsVoicePlaying(false);
+      return;
+    }
+
+    player.play().then(() => setIsVoicePlaying(true)).catch(() => setIsVoicePlaying(false));
+  };
+
+  const handleVoiceMatchAnswer = (memberId) => {
+    const isCorrect = memberId === gameState.currentMember.id;
+    const newScore = gameState.score + (isCorrect ? 1 : 0);
+    voicePlayerRef.current?.pause();
+    setIsVoicePlaying(false);
+    setGameState({ ...gameState, answered: true, correct: isCorrect, score: newScore });
+
+    const stats = getStats();
+    updateStats({
+      memoryInteractions: stats.memoryInteractions + 1,
+      engagementTime: stats.engagementTime + 1,
+    });
+  };
+
+  const nextVoiceMatchRound = () => {
+    if (gameState.round >= gameState.totalRounds) {
+      completeGame();
+      return;
+    }
+
+    const nextRound = gameState.round + 1;
+    setGameState({
+      ...gameState,
+      currentMember: gameState.roundMembers[nextRound - 1],
+      answered: false,
+      correct: null,
+      round: nextRound,
+    });
   };
 
   const handlePlaceResponse = (response) => {
@@ -353,6 +494,8 @@ function Activities() {
   };
 
   const exitGame = () => {
+    voicePlayerRef.current?.pause();
+    setIsVoicePlaying(false);
     setCurrentGame(null);
     setGameState({});
   };
@@ -438,46 +581,74 @@ function Activities() {
     );
   }
 
+  // Memory Match View (6 Pairs / 12 Cards)
   if (currentGame === 'memory-match' && gameState.cards) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white rounded-3xl shadow-xl border border-stone-200 p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-200">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Memory Match</h2>
-              <p className="text-sm text-gray-600">Matches: {gameState.matches}/6 • Moves: {gameState.moves}</p>
+              <h2 className="text-2xl font-bold text-stone-900">Memory Match</h2>
+              <p className="text-sm text-stone-500 mt-1">
+                Matches: <span className="font-semibold text-emerald-600">{gameState.matches}/6</span> • Moves: <span className="font-semibold text-stone-700">{gameState.moves}</span>
+              </p>
             </div>
-            <button onClick={exitGame} className="text-gray-400 hover:text-gray-600">
+            <button onClick={exitGame} className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-xl transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 sm:gap-4">
             {gameState.cards.map((card) => (
               <button
                 key={card.id}
                 onClick={() => !card.matched && !card.flipped && handleMemoryMatchClick(card.id)}
-                className={`aspect-square rounded-lg border-2 transition-all ${
+                className={`relative h-32 sm:h-36 md:h-40 rounded-2xl border-2 transition-all duration-300 overflow-hidden text-left p-0 ${
                   card.matched
-                    ? 'bg-green-100 border-green-300 opacity-50'
+                    ? 'border-emerald-500 bg-emerald-50/70 opacity-80 cursor-default'
                     : card.flipped
-                    ? 'bg-white border-blue-400'
-                    : 'bg-blue-600 border-blue-700 hover:bg-blue-700'
+                    ? 'border-blue-400 bg-[#FAF7F0] shadow-md'
+                    : 'border-blue-500 bg-blue-600 hover:bg-blue-700 shadow-md cursor-pointer'
                 }`}
                 disabled={card.matched || card.flipped}
               >
                 {card.flipped || card.matched ? (
                   card.type === 'image' ? (
-                    <img src={card.content} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <div className="w-full h-full p-2 flex items-center justify-center">
+                      <img 
+                        src={card.image} 
+                        alt={card.title} 
+                        className="w-full h-full object-cover rounded-xl" 
+                      />
+                    </div>
                   ) : (
-                    <span className="text-sm font-medium p-2 block">{card.content}</span>
+                    <div className="w-full h-full p-3 flex flex-col justify-center items-center text-center">
+                      <span className="font-bold text-xs sm:text-sm text-stone-900 leading-snug">
+                        {card.title}
+                      </span>
+                      <span className="text-[10px] sm:text-xs text-stone-500 mt-1 line-clamp-3">
+                        {card.description}
+                      </span>
+                    </div>
                   )
                 ) : (
-                  <span className="text-white text-2xl">?</span>
+                  <div className="w-full h-full flex items-center justify-center text-white">
+                    <span className="text-3xl font-bold opacity-75">?</span>
+                  </div>
                 )}
               </button>
             ))}
           </div>
+
+          {gameState.matches === 6 && (
+            <div className="mt-6 p-4 rounded-2xl bg-emerald-100 border border-emerald-300 text-center flex flex-col items-center justify-center gap-2">
+              <div className="flex items-center gap-2 text-emerald-800 font-bold text-lg">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                <span>Great Job! You matched all 6 memories!</span>
+              </div>
+              <p className="text-sm text-emerald-700">Completed in {gameState.moves} moves.</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -547,6 +718,99 @@ function Activities() {
         </div>
       </div>
     );
+  }
+
+  if (currentGame === 'voice-match') {
+    if (gameState.needsSetup) {
+      return (
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">Whose Voice Is It?</h2>
+              <button onClick={exitGame} className="text-gray-400 hover:text-gray-600" aria-label="Close activity">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <Volume2 className="w-16 h-16 text-purple-600 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Add four familiar voices first</h3>
+            <p className="text-gray-600 max-w-lg mx-auto">
+              This activity needs four family members with both a photo and a voice recording. There are currently {gameState.availableMembers || 0} ready.
+              Add them in Patient Profile, then come back to play.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (gameState.currentMember) {
+      return (
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Whose Voice Is It? • यह आवाज़ किसकी है?</h2>
+                <p className="text-sm text-gray-600 mt-1">Round {gameState.round} of {gameState.totalRounds} • Score: {gameState.score}</p>
+              </div>
+              <button onClick={exitGame} className="text-gray-400 hover:text-gray-600" aria-label="Close activity">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <audio
+              ref={voicePlayerRef}
+              src={`http://localhost:3000${gameState.currentMember.voice}`}
+              onEnded={() => setIsVoicePlaying(false)}
+            />
+
+            <div className="bg-purple-50 border border-purple-100 rounded-xl p-6 text-center mb-8">
+              <Volume2 className="w-12 h-12 text-purple-600 mx-auto mb-3" />
+              <p className="text-lg font-semibold text-gray-900 mb-4">Listen carefully, then choose the matching photo.</p>
+              <button
+                onClick={toggleVoicePlayback}
+                disabled={gameState.answered}
+                className="inline-flex items-center gap-2 px-7 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60 font-semibold"
+              >
+                {isVoicePlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                {isVoicePlaying ? 'Pause Voice' : 'Play Voice'}
+              </button>
+            </div>
+
+            {!gameState.answered ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {gameState.options.map((member) => (
+                  <button
+                    key={member.id}
+                    onClick={() => handleVoiceMatchAnswer(member.id)}
+                    className="group overflow-hidden rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"
+                  >
+                    <img src={`http://localhost:3000${member.photo}`} alt={`Photo of ${member.name}`} className="w-full aspect-square object-cover" />
+                    <span className="block p-3 text-center font-semibold text-gray-900">{member.name}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center">
+                {gameState.correct ? (
+                  <>
+                    <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-3" />
+                    <p className="text-2xl font-bold text-green-600 mb-2">That’s right!</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3"><span className="text-3xl">😊</span></div>
+                    <p className="text-2xl font-bold text-orange-600 mb-2">Good try!</p>
+                  </>
+                )}
+                <p className="text-gray-700 mb-6">That was {gameState.currentMember.name}, {gameState.currentMember.relation}.</p>
+                <button onClick={nextVoiceMatchRound} className="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
+                  {gameState.round < gameState.totalRounds ? 'Next Voice' : 'Complete Activity'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
   }
 
   if (currentGame === 'familiar-place' && gameState.place) {
@@ -690,7 +954,7 @@ function Activities() {
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Personalized Activities</h1>
-        <p className="text-gray-600">These activities are built around Meera's memories</p>
+        <p className="text-gray-600">These activities are built around Rituparna's memories</p>
       </div>
 
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8 border border-blue-100">
@@ -698,20 +962,20 @@ function Activities() {
           AI Memory Companion
         </h2>
         <p className="text-gray-700 mb-4">
-          Based on Meera's memory profile, we recommend activities using familiar faces, places, and experiences
+          Based on Rituparna's memory profile, we recommend activities using familiar faces, places, and experiences
         </p>
         <div className="flex flex-wrap gap-2">
           <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
             Family Recognition
           </span>
           <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-            Mumbai Memories
+            Assam Memories
           </span>
           <span className="px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-sm font-medium">
             Music Recall
           </span>
           <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-            Gardening Stories
+            Bihu Traditions
           </span>
         </div>
       </div>

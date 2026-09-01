@@ -126,7 +126,7 @@ function MemoryJourney() {
               Using Life Stories for Cognitive Engagement
             </h2>
             <p className="text-gray-700">
-              This timeline shows Meera's life journey. These personal milestones help create meaningful
+              This timeline shows Rituparna's life journey. These personal milestones help create meaningful
               activities and conversations, making cognitive engagement more familiar and comfortable.
             </p>
           </div>
