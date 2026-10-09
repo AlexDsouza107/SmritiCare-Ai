@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Edit2, Save, X, MapPin, Music, Heart, Users, Upload, Mic, Image as ImageIcon, Play, Pause } from 'lucide-react';
+import { assetUrl } from '../utils/api';
 import { getPatient, setPatient, addFamilyMember, updateFamilyMember, deleteFamilyMember } from '../utils/storage';
 
 function PatientProfile() {
@@ -79,7 +80,7 @@ function PatientProfile() {
       setPlayingAudio(null);
     } else {
       const audio = document.getElementById('audio-player');
-      audio.src = `http://localhost:3000${audioUrl}`;
+      audio.src = assetUrl(audioUrl);
       audio.play();
       setPlayingAudio(audioUrl);
     }
@@ -411,7 +412,7 @@ function PatientProfile() {
                 <div className="flex-shrink-0">
                   {member.photo ? (
                     <img
-                      src={`http://localhost:3000${member.photo}`}
+                      src={assetUrl(member.photo)}
                       alt={member.name}
                       className="w-16 h-16 rounded-full object-cover"
                     />

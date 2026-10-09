@@ -9,6 +9,7 @@ import Activities from './pages/Activities';
 import MemoryJourney from './pages/MemoryJourney';
 import Insights from './pages/Insights';
 import Settings from './pages/Settings';
+import MemoryFinder from './pages/MemoryFinder';
 import { initializeDemoData } from './utils/storage';
 import { LanguageProvider } from './context/LanguageContext';
 import './App.css';
@@ -44,6 +45,7 @@ function App() {
             <Route path="profile" element={<PatientProfile />} />
             <Route path="memory-library" element={<MemoryLibrary />} />
             <Route path="activities" element={<Activities />} />
+            <Route path="memory-finder" element={<MemoryFinder />} />
             <Route path="journey" element={<MemoryJourney />} />
             <Route path="insights" element={<Insights />} />
             <Route path="settings" element={<Settings />} />
