@@ -1,7 +1,7 @@
 // API-backed storage with localStorage caching for SmritiCare
 // Refactored to use backend Express + SQLite API
 
-const API_BASE = 'http://localhost:3000/api';
+import { API_BASE } from './api';
 const PATIENT_ID = 1; // Demo patient ID
 
 const STORAGE_KEYS = {

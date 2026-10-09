@@ -98,3 +98,38 @@ CREATE TABLE IF NOT EXISTS stats (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
 );
+
+-- SerpApi response cache: every live SerpApi search is stored here so the
+-- same query never spends a second search credit.
+CREATE TABLE IF NOT EXISTS serpapi_cache (
+  cache_key TEXT PRIMARY KEY, -- engine + sorted params
+  engine TEXT NOT NULL,
+  response TEXT NOT NULL, -- raw JSON from SerpApi
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- One row per SerpApi lookup, to show credits spent vs. served from cache
+CREATE TABLE IF NOT EXISTS serpapi_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  engine TEXT NOT NULL,
+  query TEXT,
+  cached BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Songs and places found through SerpApi for a patient. The caregiver
+-- approves each one before it appears in the patient's activities.
+CREATE TABLE IF NOT EXISTS personalized_content (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  patient_id INTEGER NOT NULL,
+  kind TEXT NOT NULL, -- 'song' or 'place'
+  external_id TEXT NOT NULL, -- YouTube video_id or Google Maps data_id
+  source_query TEXT,
+  title TEXT NOT NULL,
+  data TEXT NOT NULL, -- JSON details (thumbnail, photos, address, ...)
+  approved BOOLEAN DEFAULT 1,
+  reactions TEXT DEFAULT '{"yes":0,"unsure":0,"no":0}', -- patient responses
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (patient_id, kind, external_id),
+  FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+);

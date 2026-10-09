@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Plus, X, Calendar } from 'lucide-react';
-import { getTimeline, addTimelineEvent } from '../utils/storage';
+import { getTimeline, addTimelineEvent, getPatient } from '../utils/storage';
 
 function MemoryJourney() {
   const [timeline, setTimeline] = useState(getTimeline());
+  const firstName = getPatient()?.name?.split(' ')[0] || 'the patient';
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEvent, setNewEvent] = useState({
     year: new Date().getFullYear(),
@@ -126,7 +127,7 @@ function MemoryJourney() {
               Using Life Stories for Cognitive Engagement
             </h2>
             <p className="text-gray-700">
-              This timeline shows Rituparna's life journey. These personal milestones help create meaningful
+              This timeline shows {firstName}'s life journey. These personal milestones help create meaningful
               activities and conversations, making cognitive engagement more familiar and comfortable.
             </p>
           </div>

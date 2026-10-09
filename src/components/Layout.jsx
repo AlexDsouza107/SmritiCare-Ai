@@ -13,15 +13,17 @@ import {
   Bell,
   Eye,
   ArrowLeft,
-  Languages
+  Languages,
+  Sparkles
 } from 'lucide-react';
-import { getSettings } from '../utils/storage';
+import { getSettings, getPatient } from '../utils/storage';
 import { useLanguage } from '../context/LanguageContext';
 
 function Layout({ onReturnHome }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const settings = getSettings();
+  const patient = getPatient();
   const { lang, setLang, t } = useLanguage();
 
   const navigation = [
@@ -29,6 +31,7 @@ function Layout({ onReturnHome }) {
     { name: t('patientProfile'), href: '/profile', icon: User },
     { name: t('memoryLibrary'), href: '/memory-library', icon: Images },
     { name: t('activities'), href: '/activities', icon: Gamepad2 },
+    { name: t('memoryFinder'), href: '/memory-finder', icon: Sparkles },
     { name: t('memoryJourney'), href: '/journey', icon: Route },
     { name: t('insights'), href: '/insights', icon: BarChart3 },
     { name: t('settings'), href: '/settings', icon: SettingsIcon },
@@ -88,7 +91,7 @@ function Layout({ onReturnHome }) {
 
           {/* Footer */}
           <div className="border-t border-gray-200 px-6 py-4">
-            <p className="text-xs text-gray-500">SMARA Demo v1.0</p>
+            <p className="text-xs text-gray-500">SMARA v1.0.2</p>
             <p className="mt-1 text-xs text-gray-400">Remembering Together. Caring Always.</p>
           </div>
         </div>
@@ -115,7 +118,7 @@ function Layout({ onReturnHome }) {
                 {t('backToHome')}
               </button>
               <h1 className="truncate text-base font-semibold text-gray-900">
-                {t('patient')}: Rituparna Saikia
+                {t('patient')}: {patient?.name || ''}
               </h1>
             </div>
 

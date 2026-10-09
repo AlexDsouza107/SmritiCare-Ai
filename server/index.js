@@ -1,3 +1,4 @@
+import { existsSync } from 'fs';
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
@@ -8,12 +9,16 @@ import { initializeDatabase } from './db/database.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Load SERPAPI_KEY and other settings from .env in the project root
+const envPath = join(__dirname, '..', '.env');
+if (existsSync(envPath)) process.loadEnvFile(envPath);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
   credentials: true
 }));
 app.use(express.json());
@@ -77,6 +82,7 @@ import activitiesRouter from './routes/activities.js';
 import statsRouter from './routes/stats.js';
 import settingsRouter from './routes/settings.js';
 import reportsRouter from './routes/reports.js';
+import personalizeRouter from './routes/personalize.js';
 
 app.use('/api/patients', patientsRouter);
 app.use('/api/memories', memoriesRouter);
@@ -85,6 +91,7 @@ app.use('/api/activities', activitiesRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/personalize', personalizeRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -118,7 +125,10 @@ initializeDatabase()
     app.listen(PORT, () => {
       console.log(`\n🚀 SMARA Backend Server running on http://localhost:${PORT}`);
       console.log(`   API endpoints available at http://localhost:${PORT}/api`);
-      console.log(`   Uploads served from http://localhost:${PORT}/uploads\n`);
+      console.log(`   Uploads served from http://localhost:${PORT}/uploads`);
+      console.log(process.env.SERPAPI_KEY
+        ? '   SerpApi: key loaded ✓\n'
+        : '   SerpApi: no SERPAPI_KEY in .env, Memory Finder searches are disabled\n');
     });
   })
   .catch((err) => {

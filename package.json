@@ -1,11 +1,12 @@
 {
   "name": "smara",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "server": "node server/index.js",
+    "start": "concurrently \"npm run dev\" \"npm run server\"",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "vite build",
     "lint": "oxlint",

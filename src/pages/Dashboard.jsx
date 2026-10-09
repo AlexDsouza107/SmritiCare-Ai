@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -9,9 +9,11 @@ import {
   CheckCircle2,
   Users,
   MapPin,
-  Music
+  Music,
+  Sparkles
 } from 'lucide-react';
-import { getStats, addNote, getNotes } from '../utils/storage';
+import { getStats, addNote, getNotes, getPatient } from '../utils/storage';
+import { getPersonalContent } from '../utils/personalize';
 import { useLanguage } from '../context/LanguageContext';
 
 function Dashboard() {
@@ -28,6 +30,15 @@ function Dashboard() {
   const [newNote, setNewNote] = useState('');
   const [showNoteForm, setShowNoteForm] = useState(false);
   const recentActivities = stats.recentActivities || stats.lastActivity || [];
+  const patient = getPatient();
+  const [personal, setPersonal] = useState(null);
+
+  useEffect(() => {
+    getPersonalContent({ approvedOnly: true }).then(setPersonal).catch(() => setPersonal([]));
+  }, []);
+
+  const personalSongs = personal?.filter((c) => c.kind === 'song').length || 0;
+  const personalPlaces = personal?.filter((c) => c.kind === 'place').length || 0;
 
   const todaysActivities = [
     {
@@ -87,9 +98,32 @@ function Dashboard() {
           {getGreeting()}, Ananya
         </h1>
         <p className="text-sm text-[#7A7265]">
-          {t('overviewFor')} Rituparna Saikia
+          {t('overviewFor')} {patient?.name}
         </p>
       </div>
+
+      {/* SerpApi personalization */}
+      <Link
+        to="/memory-finder"
+        className="flex flex-col gap-3 rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-5 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-purple-950">Memory Finder · powered by SerpApi</p>
+            <p className="text-xs text-purple-800">
+              {personal === null
+                ? 'Loading personal songs and places…'
+                : personalSongs + personalPlaces > 0
+                  ? `${personalSongs} songs from YouTube and ${personalPlaces} places from Google Maps are in today's activities.`
+                  : 'Find songs from their youth and photos of the places from their life in one click.'}
+            </p>
+          </div>
+        </div>
+        <span className="text-xs font-semibold text-purple-700">Open Memory Finder →</span>
+      </Link>
 
       {/* 2. Top 4 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -240,11 +274,11 @@ function Dashboard() {
           >
             <div className="flex items-center space-x-3.5">
               <div className="w-11 h-11 bg-[#B696D9] rounded-full flex items-center justify-center text-lg font-bold text-[#3B1963]">
-                R
+                {patient?.name?.[0]}
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#301A4B]">Rituparna Saikia</h3>
-                <p className="text-xs text-[#6F5B85]">{t('age')} 68</p>
+                <h3 className="text-sm font-bold text-[#301A4B]">{patient?.name}</h3>
+                <p className="text-xs text-[#6F5B85]">{t('age')} {patient?.age}</p>
               </div>
             </div>
             <div className="space-y-1.5 pt-3 border-t border-[#D5BFEC] text-xs text-[#543F6B]">

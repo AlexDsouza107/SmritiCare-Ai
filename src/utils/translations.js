@@ -4,6 +4,7 @@ export const translations = {
     patientProfile: 'Patient Profile',
     memoryLibrary: 'Memory Library',
     activities: 'Activities',
+    memoryFinder: 'Memory Finder',
     memoryJourney: 'Memory Journey',
     insights: 'Insights',
     settings: 'Settings',
